@@ -65,7 +65,7 @@ This is not another hosted API wrapper.
 
 The current Velocity proof build is designed around the **CUDA execution path**.
 
-CUDA is currently the preferred backend for running this proof because it allows Velocity/Motify to keep the model execution local while using consumer NVIDIA GPU hardware.
+CUDA is currently the preferred backend for running this proof because it allows Velocity/Motify to keep model execution local while using consumer NVIDIA GPU hardware.
 
 Current tested hardware:
 
@@ -205,13 +205,103 @@ The runtime can show:
 - active MTA path
 - context window usage
 - layer activity
-- KV path
+- SSM state path
+- GQA / KV path
 - FFN path
 - selected execution mode
 - CUDA execution status
 - benchmark metrics
 
 This makes the proof inspectable instead of just claimed.
+
+---
+
+## 📘 Execution Map Glossary
+
+The MTA execution map exposes the internal execution surface of the currently loaded `.mfy` artifact.
+
+### SSM — State Space Model
+
+**SSM** stands for **State Space Model**.
+
+In the Velocity execution map, SSM layers are shown as the short blue state bars.
+
+Instead of relying on a large token-by-token attention window in every layer, an SSM-style path can maintain a compact working state.
+
+This is important for speed and long-context behavior because the runtime burden does not grow as brutally with conversation length as full attention over the entire context.
+
+In the map:
+
+```text
+SSM = compact state path
+blue bars = bounded / constant-state execution path
+```
+
+### GQA — Grouped Query Attention
+
+**GQA** stands for **Grouped Query Attention**.
+
+It is a form of attention used by modern model architectures, including Qwen-family models.
+
+In the Velocity execution map, GQA layers are shown as the fuller purple attention/KV bars.
+
+These layers look into token context through the KV cache.
+
+In the map:
+
+```text
+GQA = attention path
+purple bars = selected KV / token-context path
+```
+
+### FFN — Feed-Forward Network
+
+**FFN** stands for **Feed-Forward Network**.
+
+It is the part of a model layer that processes the hidden state after the attention or state-space operation.
+
+In transformer-style models, this is usually a large MLP block, commonly involving gate / up / down projections.
+
+FFN blocks are computationally expensive because they involve large matrix operations.
+
+In the map:
+
+```text
+FFN = dense compute path
+full FFN path = feed-forward block remains active
+```
+
+### KV — Key / Value Cache
+
+**KV** stands for **Key / Value cache**.
+
+Classic attention-based models store key/value tensors from previous tokens so future tokens can attend back to earlier context.
+
+This is powerful, but long context can consume significant VRAM or RAM because the cache grows with the number of tokens.
+
+In the map:
+
+```text
+KV = attention memory
+selected KV = token history used by attention layers
+```
+
+### O(1) State
+
+**O(1) state** means a bounded working state whose size is treated as constant relative to the length of the conversation or source context.
+
+Instead of growing a KV cache for every position in every relevant path, a bounded state path keeps a limited runtime state.
+
+This is important for the MTA / Adapt narrative because the goal is not only to push more tokens into the model.
+
+The goal is to control execution at the runtime layer.
+
+In the map:
+
+```text
+O(1) state = bounded working state
+dots / short bars = context not expanded into full attention cost
+```
 
 ---
 
