@@ -1,6 +1,6 @@
 # ⚡ Velocity MTA Proof Build
 
-### Existing models. No retraining. Verified execution.
+### Existing models. No retraining. Verified local execution.
 
 **Velocity is not another AI chat app.**
 
@@ -8,6 +8,18 @@ Velocity builds **Motify** — a native execution stack for local AI models base
 
 The chat is only the interface.  
 The execution stack underneath is the product.
+
+This proof build runs locally through the Velocity runtime.  
+For the current public proof, the preferred execution path is **CUDA**.
+
+Tested on:
+
+```text
+NVIDIA RTX 3060 Laptop GPU
+6GB VRAM
+CUDA backend
+qwen3.5-4b-adapt-b32.mfy
+```
 
 ---
 
@@ -34,6 +46,7 @@ existing model
 → MTA compiler
 → sealed .mfy artifact
 → Velocity runtime
+→ CUDA execution path
 → MTA Exact / MTA Adapt
 → local AI execution
 ```
@@ -43,6 +56,39 @@ This is not prompt engineering.
 This is not another hosted API wrapper.
 
 **Velocity is building the execution layer underneath local AI models.**
+
+---
+
+## 🖥️ Preferred Execution Path: CUDA
+
+The current Velocity proof build is designed around the **CUDA execution path**.
+
+CUDA is currently the preferred backend for running this proof because it allows Velocity/Motify to keep the model execution local while using consumer NVIDIA GPU hardware.
+
+Current tested hardware:
+
+```text
+GPU: NVIDIA RTX 3060 Laptop GPU
+VRAM: 6GB
+Backend: CUDA
+Runtime: Velocity / Motify
+Artifact: qwen3.5-4b-adapt-b32.mfy
+```
+
+Observed local behavior on the tested machine:
+
+```text
+Prefill: ~63–66 tok/s
+Decode:  ~52–55 tok/s
+Backend: CUDA / GPU-resident Q4 path
+Context: tested with large local context windows
+```
+
+Exact numbers may vary depending on GPU, drivers, CUDA version, thermal limits, VRAM availability, and runtime configuration.
+
+Other execution targets may be explored later, but for the current proof:
+
+> **CUDA is the primary and preferred execution path.**
 
 ---
 
@@ -135,6 +181,7 @@ It manages:
 - tokenizer setup
 - chat template setup
 - runtime session state
+- CUDA backend execution
 - MTA path selection
 - Exact / Adapt execution
 - benchmark reporting
@@ -156,9 +203,33 @@ The runtime can show:
 - KV path
 - FFN path
 - selected execution mode
+- CUDA execution status
 - benchmark metrics
 
 This makes the proof inspectable instead of just claimed.
+
+---
+
+## 📊 Proof Screenshots
+
+Add benchmark and runtime screenshots here:
+
+```text
+screenshots/context-speedup.png
+screenshots/mta-execution-map.png
+screenshots/ppl-exact-vs-adapt.png
+screenshots/velocity-terminal-chat.png
+```
+
+Example Markdown:
+
+```md
+![Context Speedup](screenshots/context-speedup.png)
+
+![MTA Execution Map](screenshots/mta-execution-map.png)
+
+![Exact vs Adapt PPL](screenshots/ppl-exact-vs-adapt.png)
+```
 
 ---
 
@@ -170,6 +241,7 @@ The v0.1 proof build lets you:
 
 - run `.mfy` artifacts locally
 - use a local terminal chat
+- run through the preferred CUDA execution path
 - switch between MTA Exact and MTA Adapt
 - benchmark Exact vs Adapt
 - inspect the MTA execution map
@@ -233,6 +305,7 @@ MTA Exact        — working
 MTA Adapt        — working
 .mfy artifact    — working
 Qwen artifact    — working
+CUDA backend     — working / preferred
 Local chat       — working
 PPL benchmark    — working
 Execution map    — working
@@ -255,8 +328,10 @@ If existing model families can be converted into `.mfy` artifacts, verified thro
 The value is in the artifact standard and runtime.
 
 ```text
-model → .mfy → Velocity Runtime → MTA execution → local AI
+model → .mfy → Velocity Runtime → CUDA / MTA execution → local AI
 ```
+
+And the current proof shows this running locally on consumer NVIDIA CUDA hardware.
 
 ---
 
@@ -268,6 +343,7 @@ Velocity is not:
 - a prompt wrapper
 - a hosted API skin
 - a fine-tuning product
+- a cloud-only demo
 - a claim without a local proof path
 
 Velocity is a local AI execution stack.
@@ -281,10 +357,11 @@ Current proof:
 ```text
 Exact  → verification and trust
 Adapt  → existing models through Motify
+CUDA   → preferred current execution path
 Native → future Motify-native execution
 ```
 
-The current public proof focuses on **MTA Exact** and **MTA Adapt**.
+The current public proof focuses on **MTA Exact**, **MTA Adapt**, and the **CUDA execution path**.
 
 MTA Native is the next step: models designed directly for Velocity’s execution stack.
 
@@ -310,6 +387,8 @@ This repository does not grant permission to copy, modify, redistribute, reverse
 - 📩 Contact: contact@veloresearch.com
 - 📦 Artifact: `qwen3.5-4b-adapt-b32.mfy`
 - 🖥️ Runtime: `velocity.exe`
+- 🧠 Architecture: Motify / MTA
+- ⚙️ Preferred backend: CUDA
 
 ---
 
