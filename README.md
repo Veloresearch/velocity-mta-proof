@@ -33,6 +33,8 @@ Model artifact:
 
 👉 [Qwen `.mfy` artifact on Hugging Face](https://huggingface.co/veloresearch/qwen3.5-4b-adapt-b32)
 
+The application can automatically download the required `.mfy` model artifact from Hugging Face on first run.
+
 ---
 
 ## 🧠 What is Velocity?
@@ -86,7 +88,7 @@ Context: tested with large local context windows
 
 Exact numbers may vary depending on GPU, drivers, CUDA version, thermal limits, VRAM availability, and runtime configuration.
 
-Other execution targets may be explored later, but for the current proof:
+For the current proof:
 
 > **CUDA is the primary and preferred execution path.**
 
@@ -169,6 +171,8 @@ The `.mfy` format is loaded by Velocity and executed through Motify.
 Hugging Face stores `.mfy` artifacts as regular binary files.  
 Velocity is the runtime that knows how to open and execute them.
 
+The current proof build can automatically download the required `.mfy` artifact from Hugging Face during setup or first run.
+
 ---
 
 ## 🛠️ Motify Runtime
@@ -178,6 +182,7 @@ Motify is the runtime layer behind Velocity.
 It manages:
 
 - artifact loading
+- automatic `.mfy` model download from Hugging Face
 - tokenizer setup
 - chat template setup
 - runtime session state
@@ -210,25 +215,38 @@ This makes the proof inspectable instead of just claimed.
 
 ---
 
-## 📊 Proof Screenshots
+## 📊 Benchmarks
 
-Add benchmark and runtime screenshots here:
+Benchmark cards and proof screenshots are available in the `/benchmarks` directory.
+
+### Full Benchmark Overview
+
+![Full Benchmark Overview](benchmarks/00_full_benchmark.png)
+
+### Context Cost
+
+![Context Cost](benchmarks/01_context_cost.png)
+
+### Context Speedup
+
+![Context Speedup](benchmarks/02_speedup.png)
+
+### Kernel Bandwidth
+
+![Kernel Bandwidth](benchmarks/03_kernel_bandwidth.png)
+
+### Decode Throughput
+
+![Decode Throughput](benchmarks/04_decode_throughput.png)
+
+### Perplexity / Quality
+
+![Perplexity](benchmarks/05_perplexity.png)
+
+Benchmark summary:
 
 ```text
-screenshots/context-speedup.png
-screenshots/mta-execution-map.png
-screenshots/ppl-exact-vs-adapt.png
-screenshots/velocity-terminal-chat.png
-```
-
-Example Markdown:
-
-```md
-![Context Speedup](screenshots/context-speedup.png)
-
-![MTA Execution Map](screenshots/mta-execution-map.png)
-
-![Exact vs Adapt PPL](screenshots/ppl-exact-vs-adapt.png)
+benchmarks/summary.txt
 ```
 
 ---
@@ -239,6 +257,8 @@ We believe in runnable proof, not screenshots.
 
 The v0.1 proof build lets you:
 
+- install Velocity on Windows
+- automatically download the required `.mfy` artifact from Hugging Face
 - run `.mfy` artifacts locally
 - use a local terminal chat
 - run through the preferred CUDA execution path
@@ -266,9 +286,11 @@ Latest release:
 https://github.com/Veloresearch/velocity-mta-proof/releases/latest
 ```
 
-### 2. Download the `.mfy` artifact
+### 2. Start Velocity
 
-Using Hugging Face CLI:
+On first run, Velocity can automatically download the required `.mfy` model artifact from Hugging Face.
+
+If you want to download it manually, use:
 
 ```bash
 hf download veloresearch/qwen3.5-4b-adapt-b32 qwen3.5-4b-adapt-b32.mfy --local-dir ./models
@@ -280,7 +302,11 @@ Or download it from:
 https://huggingface.co/veloresearch/qwen3.5-4b-adapt-b32
 ```
 
-### 3. Run Velocity
+### 3. Run the proof
+
+If the model was downloaded automatically, simply start Velocity.
+
+Manual run:
 
 ```bash
 velocity.exe --model ./models/qwen3.5-4b-adapt-b32.mfy
@@ -306,6 +332,7 @@ MTA Adapt        — working
 .mfy artifact    — working
 Qwen artifact    — working
 CUDA backend     — working / preferred
+HF download      — automatic model download supported
 Local chat       — working
 PPL benchmark    — working
 Execution map    — working
@@ -386,6 +413,7 @@ This repository does not grant permission to copy, modify, redistribute, reverse
 - 🌐 Website: [veloresearch.com](https://veloresearch.com/)
 - 📩 Contact: contact@veloresearch.com
 - 📦 Artifact: `qwen3.5-4b-adapt-b32.mfy`
+- 🤗 Hugging Face: [veloresearch/qwen3.5-4b-adapt-b32](https://huggingface.co/veloresearch/qwen3.5-4b-adapt-b32)
 - 🖥️ Runtime: `velocity.exe`
 - 🧠 Architecture: Motify / MTA
 - ⚙️ Preferred backend: CUDA
@@ -397,7 +425,7 @@ This repository does not grant permission to copy, modify, redistribute, reverse
 Run the artifact locally.
 
 ```text
-Clone it.
+Download it.
 Run it.
 Verify it.
 Break it.
