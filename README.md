@@ -45,11 +45,12 @@ OS        Windows 11 x64
 Observed local behavior on this configuration:
 
 ```text
-Prefill   ~63–66 tok/s
-Decode    ~52–55 tok/s
-VRAM      ~3 GB total at the default context budget
-Quality   Adapt matches Exact within ±1% perplexity on the same text
-          (WikiText-2 raw test sample, 1024 scored positions — /bench ppl)
+Prefill    ~63–66 tok/s
+Decode     ~52 tok/s (Adapt) vs ~53 tok/s (Exact)
+Attention  19.7x faster per token at 32,768 context (Adapt vs Exact)
+VRAM       ~3 GB total at the default context budget
+Quality    ppl 11.296 (Adapt) vs 11.312 (Exact) — −0.1% — at 1024 positions,
+           +0.9% at 4096 positions (WikiText-2 raw test sample — /bench ppl)
 ```
 
 Your numbers will differ with GPU, drivers, thermals, and configuration — which is exactly why
@@ -102,18 +103,21 @@ can run — Exact is that reference, one command away (`/mode exact`).
 
 The current product path. It runs an existing, frozen model through Motify's adaptive execution —
 attending the active context (sink + recent + selected KV) instead of the full window — without
-retraining and without giving up the baseline. The proof is one command, on your machine:
+retraining and without giving up the baseline. The active budget is **adaptive**: it grows with
+the context, so the attended fraction stays small while quality holds. The proof is one command,
+on your machine:
 
 ```text
 /bench ppl
-  → EXACT : ppl …      (reference path)
-  → ADAPT : ppl …      (delta vs Exact, same WikiText-2 sample, same machine)
+  → EXACT : ppl 11.312      (reference path)
+  → ADAPT : ppl 11.296      (−0.1% — same WikiText-2 sample, same machine)
 ```
 
-On the tested configuration Adapt stays within ±1% of Exact. This is presented as a
-**quality-preservation** result on the tested benchmark, not a universal claim. The point is
-narrow and verifiable: *Adapt runs a different execution path and the quality stays at baseline.*
-Speed is the part that changes — see the benchmark charts below.
+On the tested configuration Adapt stays within ±1% of Exact (−0.1% at 1024 scored positions,
++0.9% at 4096) while the per-token attention step runs **19.7x faster at 32,768 context**. This
+is presented as a **quality-preservation** result on the tested benchmark, not a universal claim.
+The point is narrow and verifiable: *Adapt runs a different execution path and the quality stays
+at baseline.* Speed is the part that changes — see the benchmark charts below.
 
 ---
 
