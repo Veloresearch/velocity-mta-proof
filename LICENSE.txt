@@ -1,0 +1,21 @@
+Velo MTA Proprietary License
+
+Copyright (c) 2026 Velo / Motify. All rights reserved.
+
+This software package, including the Velocity executable, model artifacts, documentation, packaging, and related files, is proprietary and confidential unless a separate written agreement states otherwise.
+
+You may use this package only for evaluation, demonstration, internal testing, or another purpose explicitly authorized by Velo / Motify.
+
+You may not:
+
+- copy, redistribute, sell, sublicense, rent, lease, or publicly host this package;
+- reverse engineer, decompile, disassemble, or attempt to derive the source code or internal architecture;
+- extract, reuse, republish, or repackage the model artifact, runtime components, selectors, kernels, or `.mfy` internals;
+- remove or alter copyright, license, or ownership notices;
+- claim ownership of Velo, Motify, MTA, Velocity, or related technology.
+
+The package is provided "as is", without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement.
+
+Velo / Motify is not liable for any claim, damages, loss, or other liability arising from use of this package.
+
+All rights not expressly granted are reserved by Velo / Motify.
