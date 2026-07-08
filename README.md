@@ -48,7 +48,8 @@ Observed local behavior on this configuration:
 Prefill   ~63–66 tok/s
 Decode    ~52–55 tok/s
 VRAM      ~3 GB total at the default context budget
-Quality   ppl 2.364 (Adapt) vs 2.373 (Exact) on the fixed benchmark corpus
+Quality   Adapt matches Exact within ±1% perplexity on the same text
+          (WikiText-2 raw test sample, 1024 scored positions — /bench ppl)
 ```
 
 Your numbers will differ with GPU, drivers, thermals, and configuration — which is exactly why
@@ -62,16 +63,20 @@ This is a v0.1 proof build. It is honest about where the edges are:
 
 - **Context budget defaults to 8192 tokens.** This is a deliberate VRAM choice for 6 GB cards,
   not an architecture ceiling — the attention-cost benchmark itself measures up to 32,768 tokens.
-  With more VRAM, raise it: `velocity.exe --max-ctx 16384` or `--max-ctx 32768`.
+  With more VRAM, raise it live with **`/ctx 16384`** (shows a VRAM estimate before applying)
+  or at startup with `--max-ctx`.
 - **Windows x64 + NVIDIA CUDA is the tested performance path.** A native CPU (AVX2) fallback is
   built in and runs the same artifact, but it is a compatibility path, not the speed path.
 - **Greedy decoding.** The proof build runs the model deterministically, as-is — no sampling
   tricks, no anti-repeat rewriting layered on top. What the model produces is what you see.
 - **One artifact so far in public.** The public proof ships the Qwen-family 4B artifact.
   A Gemma-family artifact is part of the current internal validation path.
-- **Perplexity is corpus-relative.** The `/bench` PPL number uses a fixed public-domain text so
-  Exact and Adapt are comparable *on the same machine*. It is not a WikiText-2 score and should
-  not be compared against papers.
+- **Perplexity is scored on a WikiText-2 sample.** The `/bench ppl` corpus is the opening
+  ~120 KB of the **WikiText-2 (raw) test split** — the same corpus family the community uses
+  (llama.cpp's `wiki.test.raw`) — embedded so the number is reproducible offline. It is a sample
+  of the split, not the full 1.2 MB file, so treat it as an Exact-vs-Adapt comparison on standard
+  text, not as a paper-comparable full-WikiText-2 score. `/bench ppl <file>` scores any file you
+  choose.
 
 ---
 
@@ -97,16 +102,18 @@ can run — Exact is that reference, one command away (`/mode exact`).
 
 The current product path. It runs an existing, frozen model through Motify's adaptive execution —
 attending the active context (sink + recent + selected KV) instead of the full window — without
-retraining and without giving up the baseline:
+retraining and without giving up the baseline. The proof is one command, on your machine:
 
 ```text
-EXACT : ppl 2.373
-ADAPT : ppl 2.364   (−0.4% vs Exact on the fixed corpus, this machine)
+/bench ppl
+  → EXACT : ppl …      (reference path)
+  → ADAPT : ppl …      (delta vs Exact, same WikiText-2 sample, same machine)
 ```
 
-This is presented as a **quality-preservation** result on the tested benchmark, not a universal
-claim. The point is narrow and verifiable: *Adapt runs a different execution path and the quality
-stays at baseline.* Speed is the part that changes — see the benchmark charts below.
+On the tested configuration Adapt stays within ±1% of Exact. This is presented as a
+**quality-preservation** result on the tested benchmark, not a universal claim. The point is
+narrow and verifiable: *Adapt runs a different execution path and the quality stays at baseline.*
+Speed is the part that changes — see the benchmark charts below.
 
 ---
 
@@ -206,9 +213,11 @@ Type `/` in the prompt to open the command palette.
 ```text
 /mode adapt | exact          switch MTA execution path
 /backend auto | cuda | cpu   select the compute backend
+/ctx | /ctx <tokens>         context budget — shows a VRAM estimate per size, applies live
 /think on | off              let the model reason before answering
 /map on | off                per-layer MTA execution map
-/bench                       run the local benchmark suite
+/bench                       benchmark menu: quick | ppl | speed | full (PNG charts)
+/bench ppl <file>            score perplexity on your own text file
 /stats                       last-turn speed and context stats
 /new                         start a fresh conversation
 /copy                        copy the last code block
