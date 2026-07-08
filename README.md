@@ -1,526 +1,302 @@
-# ⚡ Velocity MTA Proof Build
+# Velocity — MTA Proof Build
 
 ### Existing models. No retraining. Verified local execution.
 
-**Velocity is not another AI chat app.**
+Velocity is not another AI chat app. Velocity builds **Motify** — a native execution stack for
+local AI models, based on sealed `.mfy` artifacts and **MTA (Motify Transit Architecture)**.
+The chat is only the interface; the execution stack underneath is the product.
 
-Velocity builds **Motify** — a native execution stack for local AI models based on sealed `.mfy` artifacts and **MTA**, the **Motify Transit Architecture**.
-
-The chat is only the interface.  
-The execution stack underneath is the product.
-
-This proof build runs locally through the Velocity runtime.  
-For the current public proof, the preferred execution path is **CUDA**.
-
-Tested on:
+This is a **proof build**: everything it claims, it can measure on your machine.
 
 ```text
-NVIDIA RTX 3060 Laptop GPU
-6GB VRAM
-CUDA backend
-qwen3.5-4b-adapt-b32.mfy
+existing model → MTA compiler → sealed .mfy artifact → Velocity runtime
+             → CUDA execution path → MTA Exact / MTA Adapt → local AI
 ```
 
----
-
-## 🚀 Download
-
-**Windows proof build:**
-
-👉 [Download VeloSetup.exe](https://github.com/Veloresearch/velocity-mta-proof/releases/latest)
-
-Model artifact:
-
-👉 [Qwen `.mfy` artifact on Hugging Face](https://huggingface.co/veloresearch/qwen3.5-4b-adapt-b32)
-
-The application can automatically download the required `.mfy` model artifact from Hugging Face on first run.
+No Python. No PyTorch. No server. No cloud. One `.exe`.
 
 ---
 
-## 🧠 What is Velocity?
+## Download
 
-Velocity is a local AI execution system for `.mfy` model artifacts.
+| | |
+|---|---|
+| **Windows proof build** | [Download VeloSetup.exe](https://github.com/Veloresearch/velocity-mta-proof/releases/latest) |
+| **Model artifact** | [veloresearch/qwen3.5-4b-adapt-b32 on Hugging Face](https://huggingface.co/veloresearch/qwen3.5-4b-adapt-b32) |
 
-Instead of shipping another wrapper around an existing model, Velocity introduces a full runtime path:
+The installer can download the `.mfy` artifact (~2.95 GB) during setup, SHA-256 verified.
+If skipped, `velocity.exe` downloads and verifies it automatically on first launch, with resume
+support for interrupted downloads. No account or token is required.
+
+---
+
+## Tested configuration
+
+Every number in this repository was measured on this machine — a mid-range consumer laptop GPU,
+deliberately. If it runs here, it runs on ordinary hardware.
 
 ```text
-existing model
-→ MTA compiler
-→ sealed .mfy artifact
-→ Velocity runtime
-→ CUDA execution path
-→ MTA Exact / MTA Adapt
-→ local AI execution
+GPU       NVIDIA RTX 3060 Laptop GPU, 6 GB VRAM
+Backend   CUDA, GPU-resident Q4 path
+Artifact  qwen3.5-4b-adapt-b32.mfy (frozen Qwen-family 4B, 4-bit)
+OS        Windows 11 x64
 ```
 
-This is not fine-tuning.  
-This is not prompt engineering.  
-This is not another hosted API wrapper.
-
-**Velocity is building the execution layer underneath local AI models.**
-
----
-
-## 🖥️ Preferred Execution Path: CUDA
-
-The current Velocity proof build is designed around the **CUDA execution path**.
-
-CUDA is currently the preferred backend for running this proof because it allows Velocity/Motify to keep model execution local while using consumer NVIDIA GPU hardware.
-
-Current tested hardware:
+Observed local behavior on this configuration:
 
 ```text
-GPU: NVIDIA RTX 3060 Laptop GPU
-VRAM: 6GB
-Backend: CUDA
-Runtime: Velocity / Motify
-Artifact: qwen3.5-4b-adapt-b32.mfy
+Prefill   ~63–66 tok/s
+Decode    ~52–55 tok/s
+VRAM      ~3 GB total at the default context budget
+Quality   ppl 2.364 (Adapt) vs 2.373 (Exact) on the fixed benchmark corpus
 ```
 
-Observed local behavior on the tested machine:
-
-```text
-Prefill: ~63–66 tok/s
-Decode:  ~52–55 tok/s
-Backend: CUDA / GPU-resident Q4 path
-Context: tested with large local context windows
-```
-
-Exact numbers may vary depending on GPU, drivers, CUDA version, thermal limits, VRAM availability, and runtime configuration.
-
-For the current proof:
-
-> **CUDA is the primary and preferred execution path.**
+Your numbers will differ with GPU, drivers, thermals, and configuration — which is exactly why
+the benchmark suite ships inside the app (`/bench`). Don't quote ours; measure yours.
 
 ---
 
-## 🧬 MTA — Motify Transit Architecture
+## Known limits (read this before benchmarking)
 
-**MTA** is the execution architecture inside Motify.
+This is a v0.1 proof build. It is honest about where the edges are:
 
-Velocity currently exposes two working MTA proof paths:
-
-- ✅ **MTA Exact** — baseline / parity / verification path
-- ⚡ **MTA Adapt** — no-retraining execution path for existing model families
-- 🧬 **MTA Native** — future native model path designed directly for Velocity
-
-> **Exact proves trust.**  
-> **Adapt ships existing models.**  
-> **Native breaks the ceiling.**
-
----
-
-## ✅ MTA Exact
-
-**MTA Exact** is the verification path.
-
-It is designed for baseline comparison, auditability, and parity checks.
-
-Use MTA Exact when you want to verify:
-
-> Does this `.mfy` artifact preserve expected baseline behavior?
-
-MTA Exact exists to build trust.
-
-It gives developers a reference path before evaluating any optimized or adapted execution mode.
+- **Context budget defaults to 8192 tokens.** This is a deliberate VRAM choice for 6 GB cards,
+  not an architecture ceiling — the attention-cost benchmark itself measures up to 32,768 tokens.
+  With more VRAM, raise it: `velocity.exe --max-ctx 16384` or `--max-ctx 32768`.
+- **Windows x64 + NVIDIA CUDA is the tested performance path.** A native CPU (AVX2) fallback is
+  built in and runs the same artifact, but it is a compatibility path, not the speed path.
+- **Greedy decoding.** The proof build runs the model deterministically, as-is — no sampling
+  tricks, no anti-repeat rewriting layered on top. What the model produces is what you see.
+- **One artifact so far in public.** The public proof ships the Qwen-family 4B artifact.
+  A Gemma-family artifact is part of the current internal validation path.
+- **Perplexity is corpus-relative.** The `/bench` PPL number uses a fixed public-domain text so
+  Exact and Adapt are comparable *on the same machine*. It is not a WikiText-2 score and should
+  not be compared against papers.
 
 ---
 
-## ⚡ MTA Adapt
+## MTA — Motify Transit Architecture
 
-**MTA Adapt** is the current product path.
+Velocity exposes two working MTA paths today, with a third in development:
 
-It runs existing model families through the Motify execution stack as sealed `.mfy` artifacts **without retraining**.
+| Path | Status | Role |
+|---|---|---|
+| **MTA Exact** | working | full-window reference path — baseline, parity, auditability |
+| **MTA Adapt** | working | the product path — existing models through Motify, **no retraining** |
+| **MTA Native** | future | models designed directly for Velocity's execution stack |
 
-Use MTA Adapt when you want to test:
+> **Exact proves trust. Adapt ships existing models. Native breaks the ceiling.**
 
-> Can this existing model run through Motify’s execution path without losing quality?
+### MTA Exact
 
-Current local proof:
+The verification path. Use it to answer one question: *does this `.mfy` artifact preserve
+expected baseline behavior?* Every optimized mode should be judged against a reference the user
+can run — Exact is that reference, one command away (`/mode exact`).
+
+### MTA Adapt
+
+The current product path. It runs an existing, frozen model through Motify's adaptive execution —
+attending the active context (sink + recent + selected KV) instead of the full window — without
+retraining and without giving up the baseline:
 
 ```text
 EXACT : ppl 2.373
-ADAPT : ppl 2.364
-Delta : -0.4% vs Exact
+ADAPT : ppl 2.364   (−0.4% vs Exact on the fixed corpus, this machine)
 ```
 
-This is presented as a quality preservation result on the tested benchmark.
-
-It should not be interpreted as a universal claim that Adapt improves every model in every setting.
-
-The important point is simple:
-
-> **MTA Adapt preserves baseline quality while running through a different execution path.**
+This is presented as a **quality-preservation** result on the tested benchmark, not a universal
+claim. The point is narrow and verifiable: *Adapt runs a different execution path and the quality
+stays at baseline.* Speed is the part that changes — see the benchmark charts below.
 
 ---
 
-## 📦 `.mfy` Artifacts
+## `.mfy` artifacts
 
-A `.mfy` file is a sealed Motify model artifact.
-
-It packages model payload, tokenizer metadata, runtime configuration, and MTA execution metadata into a portable artifact designed for Velocity.
-
-Current proof artifact:
+A `.mfy` file is a sealed Motify model artifact: model payload, tokenizer metadata, runtime
+configuration, and MTA execution metadata in one portable file. Hugging Face stores it as a
+regular binary; Velocity is the runtime that knows how to open and execute it.
 
 ```text
-qwen3.5-4b-adapt-b32.mfy
+qwen3.5-4b-adapt-b32.mfy   (~2.95 GB, self-contained — nothing else to install)
 ```
 
-The `.mfy` format is loaded by Velocity and executed through Motify.
-
-Hugging Face stores `.mfy` artifacts as regular binary files.  
-Velocity is the runtime that knows how to open and execute them.
-
-The current proof build can automatically download the required `.mfy` artifact from Hugging Face during setup or first run.
+The Adapt selector ships *inside* the artifact — zero calibration, plug and play.
 
 ---
 
-## 🛠️ Motify Runtime
+## The execution map
 
-Motify is the runtime layer behind Velocity.
+Velocity shows its execution surface instead of hiding it. The right-hand panel (`/map on`)
+renders, per layer, live during generation:
 
-It manages:
+- which path each layer runs (attention vs state)
+- the measured **active-KV ratio** — how much of the context the attention layers actually touch
+- context usage, prefill/decode speed, and the selected backend in the header
 
-- artifact loading
-- automatic `.mfy` model download from Hugging Face
-- tokenizer setup
-- chat template setup
-- runtime session state
-- CUDA backend execution
-- MTA path selection
-- Exact / Adapt execution
-- benchmark reporting
-- execution inspection
+### Glossary
 
-The goal is to make local model execution inspectable, reproducible, and verifiable.
+| Term | Meaning in the map |
+|---|---|
+| **GQA** | Grouped Query Attention — the attention path. Bars sized by measured active-KV %. |
+| **KV** | Key/Value cache — attention memory; grows with context in the Exact path. |
+| **SSM** | State Space Model — layers that keep a compact working state instead of a growing window. |
+| **O(1) state** | a bounded working state whose size does not grow with conversation length. |
+| **FFN** | Feed-Forward Network — the dense compute block in each layer. |
 
----
-
-## 🗺️ MTA Execution Map
-
-Velocity exposes the execution surface instead of hiding it.
-
-The runtime can show:
-
-- active MTA path
-- context window usage
-- layer activity
-- SSM state path
-- GQA / KV path
-- FFN path
-- selected execution mode
-- CUDA execution status
-- benchmark metrics
-
-This makes the proof inspectable instead of just claimed.
+The reason this matters: the goal is not to push more tokens into the model, it is to **control
+execution at the runtime layer** — and to let you watch it happen.
 
 ---
 
-## 📘 Execution Map Glossary
+## Benchmarks
 
-The MTA execution map exposes the internal execution surface of the currently loaded `.mfy` artifact.
+We believe in runnable proof, not screenshots. The suite ships inside the app — type `/bench`
+and it measures **your** machine, renders the charts, and writes the raw numbers to
+`summary.txt`. Nothing is baked in; the charts show whatever your hardware produced, and Exact
+is always plotted next to Adapt.
 
-### SSM — State Space Model
-
-**SSM** stands for **State Space Model**.
-
-In the Velocity execution map, SSM layers are shown as the short blue state bars.
-
-Instead of relying on a large token-by-token attention window in every layer, an SSM-style path can maintain a compact working state.
-
-This is important for speed and long-context behavior because the runtime burden does not grow as brutally with conversation length as full attention over the entire context.
-
-In the map:
-
-```text
-SSM = compact state path
-blue bars = bounded / constant-state execution path
-```
-
-### GQA — Grouped Query Attention
-
-**GQA** stands for **Grouped Query Attention**.
-
-It is a form of attention used by modern model architectures, including Qwen-family models.
-
-In the Velocity execution map, GQA layers are shown as the fuller purple attention/KV bars.
-
-These layers look into token context through the KV cache.
-
-In the map:
-
-```text
-GQA = attention path
-purple bars = selected KV / token-context path
-```
-
-### FFN — Feed-Forward Network
-
-**FFN** stands for **Feed-Forward Network**.
-
-It is the part of a model layer that processes the hidden state after the attention or state-space operation.
-
-In transformer-style models, this is usually a large MLP block, commonly involving gate / up / down projections.
-
-FFN blocks are computationally expensive because they involve large matrix operations.
-
-In the map:
-
-```text
-FFN = dense compute path
-full FFN path = feed-forward block remains active
-```
-
-### KV — Key / Value Cache
-
-**KV** stands for **Key / Value cache**.
-
-Classic attention-based models store key/value tensors from previous tokens so future tokens can attend back to earlier context.
-
-This is powerful, but long context can consume significant VRAM or RAM because the cache grows with the number of tokens.
-
-In the map:
-
-```text
-KV = attention memory
-selected KV = token history used by attention layers
-```
-
-### O(1) State
-
-**O(1) state** means a bounded working state whose size is treated as constant relative to the length of the conversation or source context.
-
-Instead of growing a KV cache for every position in every relevant path, a bounded state path keeps a limited runtime state.
-
-This is important for the MTA / Adapt narrative because the goal is not only to push more tokens into the model.
-
-The goal is to control execution at the runtime layer.
-
-In the map:
-
-```text
-O(1) state = bounded working state
-dots / short bars = context not expanded into full attention cost
-```
-
----
-
-## 📊 Benchmarks
-
-Benchmark cards and proof screenshots are available in the `/benchmarks` directory.
-
-### Full Benchmark Overview
+Reference results from the tested RTX 3060 Laptop configuration:
 
 ![Full Benchmark Overview](benchmarks/00_full_benchmark.png)
 
-### Context Cost
+| Chart | |
+|---|---|
+| [Context cost](benchmarks/01_context_cost.png) | per-token attention cost vs context, Exact and Adapt |
+| [Context speedup](benchmarks/02_speedup.png) | the Adapt/Exact attention ratio across windows |
+| [Kernel bandwidth](benchmarks/03_kernel_bandwidth.png) | Q4 GEMV throughput vs the *measured* read ceiling of the GPU |
+| [Decode throughput](benchmarks/04_decode_throughput.png) | end-to-end tok/s, Exact and Adapt |
+| [Perplexity](benchmarks/05_perplexity.png) | quality, Exact vs Adapt, same corpus, same machine |
 
-![Context Cost](benchmarks/01_context_cost.png)
-
-### Context Speedup
-
-![Context Speedup](benchmarks/02_speedup.png)
-
-### Kernel Bandwidth
-
-![Kernel Bandwidth](benchmarks/03_kernel_bandwidth.png)
-
-### Decode Throughput
-
-![Decode Throughput](benchmarks/04_decode_throughput.png)
-
-### Perplexity / Quality
-
-![Perplexity](benchmarks/05_perplexity.png)
-
-Benchmark summary:
-
-```text
-benchmarks/summary.txt
-```
+Raw numbers: [benchmarks/summary.txt](benchmarks/summary.txt)
 
 ---
 
-## 🧪 Local Proof Release v0.1
+## Quick start
 
-We believe in runnable proof, not screenshots.
+**1. Install** — run [`VeloSetup.exe`](https://github.com/Veloresearch/velocity-mta-proof/releases/latest).
+Per-user install, no administrator prompt. The model downloads during setup (or on first launch).
 
-The v0.1 proof build lets you:
+**2. Launch** — start **Velocity** from the Start menu, or run it from a terminal
+(Windows Terminal recommended):
 
-- install Velocity on Windows
-- automatically download the required `.mfy` artifact from Hugging Face
-- run `.mfy` artifacts locally
-- use a local terminal chat
-- run through the preferred CUDA execution path
-- switch between MTA Exact and MTA Adapt
-- benchmark Exact vs Adapt
-- inspect the MTA execution map
-- test adapted model artifacts locally
-- verify that MTA Adapt does not require retraining
-
----
-
-## ⚙️ Quick Start
-
-### 1. Install Velocity
-
-Download and run:
-
-```text
-VeloSetup.exe
+```powershell
+velocity.exe
 ```
 
-Latest release:
-
-```text
-https://github.com/Veloresearch/velocity-mta-proof/releases/latest
-```
-
-### 2. Start Velocity
-
-On first run, Velocity can automatically download the required `.mfy` model artifact from Hugging Face.
-
-If you want to download it manually, use:
+Manual model download, if you prefer:
 
 ```bash
 hf download veloresearch/qwen3.5-4b-adapt-b32 qwen3.5-4b-adapt-b32.mfy --local-dir ./models
 ```
 
-Or download it from:
+**3. Verify the proof yourself:**
 
 ```text
-https://huggingface.co/veloresearch/qwen3.5-4b-adapt-b32
+/mode exact      run the reference path
+/mode adapt      run the adaptive path
+/bench           measure both on your machine (charts + summary.txt)
+/map on          watch the per-layer execution map while it generates
+/stats           last-turn speed and context numbers
 ```
 
-### 3. Run the proof
+## Commands
 
-If the model was downloaded automatically, simply start Velocity.
-
-Manual run:
-
-```bash
-velocity.exe --model ./models/qwen3.5-4b-adapt-b32.mfy
-```
-
-Inside Velocity:
+Type `/` in the prompt to open the command palette.
 
 ```text
-/mode exact
-/bench ppl
-/mode adapt
-/bench ppl
-/inspect mta
+/mode adapt | exact          switch MTA execution path
+/backend auto | cuda | cpu   select the compute backend
+/think on | off              let the model reason before answering
+/map on | off                per-layer MTA execution map
+/bench                       run the local benchmark suite
+/stats                       last-turn speed and context stats
+/new                         start a fresh conversation
+/copy                        copy the last code block
+/save <file>                 save the last code block to a file
+/settings                    current runtime settings
+/help                        list commands
+/exit                        quit
+```
+
+`Ctrl+C` stops the current generation without closing the app.
+
+## Startup options
+
+```text
+velocity.exe --model <path.mfy>      use a specific artifact
+velocity.exe --backend auto|cuda|cpu
+velocity.exe --exact                 start in MTA Exact
+velocity.exe --max-ctx N             context budget (default 8192; raise with VRAM headroom)
+velocity.exe --max-new N             max answer tokens (default 8192)
+velocity.exe --think                 enable model reasoning by default
+velocity.exe --plain                 no fullscreen UI / colors
+velocity.exe --prompt "..."          one-shot answer, then exit
 ```
 
 ---
 
-## 📊 Current Proof Status
+## Proof status
 
 ```text
-MTA Exact        — working
-MTA Adapt        — working
-.mfy artifact    — working
-Qwen artifact    — working
-CUDA backend     — working / preferred
-HF download      — automatic model download supported
-Local chat       — working
-PPL benchmark    — working
-Execution map    — working
+MTA Exact        working
+MTA Adapt        working
+.mfy artifact    working
+Qwen 4B artifact working
+CUDA backend     working — preferred path
+CPU x86 backend  working — compatibility fallback
+HF auto-download working — setup-time and first-launch, SHA-256 verified
+Local chat       working
+Benchmark suite  working — /bench, reproducible locally
+Execution map    working — /map
 ```
 
-Gemma-family MTA proof is also part of the current internal validation path.
-
-MTA Native is the future path for Motify-native models designed directly for Velocity’s execution stack.
+In internal validation: Gemma-family artifact. Next: MTA Native.
 
 ---
 
-## 🔥 Why This Matters
+## Why this matters
 
-Velocity does not compete with Qwen, Gemma, Llama, or other model families.
+Velocity does not compete with Qwen, Gemma, or Llama. It builds the execution layer underneath
+them. If existing model families can be compiled into `.mfy` artifacts, verified through MTA
+Exact, and executed through MTA Adapt without retraining — then the value is not in any one
+model. It is in the artifact standard and the runtime.
 
-Velocity builds the execution layer underneath them.
+And the proof runs on a 6 GB consumer laptop GPU.
 
-If existing model families can be converted into `.mfy` artifacts, verified through MTA Exact, and executed through MTA Adapt without retraining, then the value is not in one model.
+## What Velocity is not
 
-The value is in the artifact standard and runtime.
-
-```text
-model → .mfy → Velocity Runtime → CUDA / MTA execution → local AI
-```
-
-And the current proof shows this running locally on consumer NVIDIA CUDA hardware.
-
----
-
-## ❌ What Velocity Is Not
-
-Velocity is not:
-
-- another chat UI
-- a prompt wrapper
-- a hosted API skin
-- a fine-tuning product
-- a cloud-only demo
-- a claim without a local proof path
-
-Velocity is a local AI execution stack.
+- not another chat UI, prompt wrapper, or hosted API skin
+- not a fine-tuning product
+- not a cloud demo
+- not a claim without a runnable local proof
 
 ---
 
-## 🧬 Roadmap
+## Privacy
 
-Current proof:
+Inference is fully local. The only network access is the one-time model download from
+Hugging Face. Conversations stay on your machine.
 
-```text
-Exact  → verification and trust
-Adapt  → existing models through Motify
-CUDA   → preferred current execution path
-Native → future Motify-native execution
-```
-
-The current public proof focuses on **MTA Exact**, **MTA Adapt**, and the **CUDA execution path**.
-
-MTA Native is the next step: models designed directly for Velocity’s execution stack.
-
----
-
-## 📜 License
+## License
 
 This repository contains a public proof build and packaged binaries for Velocity / Motify.
-
-Velocity, Motify, MTA, the `.mfy` artifact format, runtime technology, compiler technology, execution architecture, and related tooling are proprietary Velocity technologies unless explicitly stated otherwise.
-
-Model artifacts may follow the license of their upstream base models.
-
-This repository does not grant permission to copy, modify, redistribute, reverse engineer, or reuse Velocity proprietary technology.
+Velocity, Motify, MTA, the `.mfy` artifact format, and the runtime/compiler technology are
+proprietary Velocity technologies unless explicitly stated otherwise. Model artifacts follow the
+license of their upstream base models. This repository does not grant permission to copy, modify,
+redistribute, or reverse engineer Velocity proprietary technology.
 
 © 2026 Velocity / Velo Research. All rights reserved.
 
----
+## Links
 
-## 🔗 Links
-
-- 🌐 Website: [veloresearch.com](https://veloresearch.com/)
-- 📩 Contact: contact@veloresearch.com
-- 📦 Artifact: `qwen3.5-4b-adapt-b32.mfy`
-- 🤗 Hugging Face: [veloresearch/qwen3.5-4b-adapt-b32](https://huggingface.co/veloresearch/qwen3.5-4b-adapt-b32)
-- 🖥️ Runtime: `velocity.exe`
-- 🧠 Architecture: Motify / MTA
-- ⚙️ Preferred backend: CUDA
+- Website: [veloresearch.com](https://veloresearch.com/)
+- Contact: contact@veloresearch.com
+- Artifact: [veloresearch/qwen3.5-4b-adapt-b32](https://huggingface.co/veloresearch/qwen3.5-4b-adapt-b32)
 
 ---
 
-## Don’t trust screenshots.
-
-Run the artifact locally.
+### Don't trust screenshots.
 
 ```text
-Download it.
-Run it.
-Verify it.
-Break it.
+Download it. Run it. Verify it. Break it.
 ```
-
----
-
-© 2026 Velocity / Velo Research. All rights reserved.
