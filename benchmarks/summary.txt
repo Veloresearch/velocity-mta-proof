@@ -2,19 +2,19 @@ VELOCITY benchmark suite
 device: NVIDIA GeForce RTX 3060 Laptop GPU
 
 context   exact(us)   adapt(us)   speedup
-    512       539.8       316.0      1.7x
-   1024      1074.1       339.3      3.2x
-   2048      2144.9       330.9      6.5x
-   4096      3421.4       317.5     10.8x
-   8192      6863.7       512.0     13.4x
-  16384     13678.0       798.3     17.1x
-  32768     27365.2      1361.0     20.1x
+    512       543.2       399.4      1.4x
+   1024      1081.6       794.0      1.4x
+   2048      1942.8       263.4      7.4x
+   4096      3408.3       311.2     11.0x
+   8192      6815.6       427.1     16.0x
+  16384     13637.9       593.2     23.0x
+  32768     27274.9       915.4     29.8x
 
-q4_gemv: 243 GB/s (81% of 300 GB/s ceiling), 32.4 us/call
-decode : adapt 63.8 tok/s, exact 64.1 tok/s
-ppl    : exact 11.312, adapt 11.296 (-0.1%), 1024 positions, WikiText-2 raw test sample
+q4_gemv: 240 GB/s (80% of 300 GB/s ceiling), 32.7 us/call
+decode : adapt 63.2 tok/s, exact 63.6 tok/s
+ppl    : exact 11.312, adapt 11.312 (-0.0%), 1024 positions, WikiText-2 raw test sample
 
-headline: 20x attention speedup | 64 tok/s decode | ppl 11.30 adapt vs 11.31 exact
+headline: 30x attention speedup | 63 tok/s decode | ppl 11.31 adapt vs 11.31 exact
 
 files:
 - 00_full_benchmark.png
