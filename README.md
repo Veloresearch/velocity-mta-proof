@@ -24,71 +24,58 @@ No Python. No PyTorch. No server. No cloud. One `.exe`.
 | **Windows proof build** | [Download VeloSetup.exe](https://github.com/Veloresearch/velocity-mta-proof/releases/latest) |
 | **Model artifact** | [veloresearch/qwen3.5-4b-adapt-b32 on Hugging Face](https://huggingface.co/veloresearch/qwen3.5-4b-adapt-b32) |
 
-The installer can download the `.mfy` artifact (~2.95 GB) during setup, SHA-256 verified.
-If skipped, `velocity.exe` downloads and verifies it automatically on first launch, with resume
-support for interrupted downloads. No account or token is required.
+The installer downloads the `.mfy` artifact (~2.95 GB) during setup, SHA-256 verified. If
+skipped, `velocity.exe` downloads and verifies it on first launch, with resume support for
+interrupted downloads. No account or token required.
+
+> **Windows SmartScreen** will warn about an unknown publisher — the build is not code-signed
+> yet. Click *More info → Run anyway*.
 
 ---
 
-## Tested configuration
+## The headline result
 
-Every number in this repository was measured on this machine — a mid-range consumer laptop GPU,
-deliberately. If it runs here, it runs on ordinary hardware.
+**MTA Adapt matches the exact path — and beats it as context grows.** Measured back-to-back on
+the same machine, same model, same text (WikiText-2 raw test sample):
+
+```text
+Quality   ppl @1024 positions : EXACT 11.312 = ADAPT 11.312   (0.0% — bit-identical)
+          ppl @4096 positions : EXACT 9.028 vs ADAPT 9.101    (+0.8%)
+
+Speed     decode @3.5k context : ADAPT 58.6 tok/s vs EXACT 25.6 tok/s   (2.3x faster)
+          decode, short context: ~52–55 tok/s both paths
+          per-token attention @32k context: 30x+ below the full-window path
+```
+
+Below ~2k context Adapt attends the entire window — it is **literally the exact computation**.
+As context grows, it selects the active keys and the cost stays bounded while Exact's grows
+linearly. That crossover is the product.
+
+Not a universal claim — a narrow, verifiable one. The benchmark suite ships inside the app:
+type `/bench` and it renders these exact charts from **your** hardware. If Adapt loses on your
+GPU, the chart will show it.
+
+## Tested configuration
 
 ```text
 GPU       NVIDIA RTX 3060 Laptop GPU, 6 GB VRAM
 Backend   CUDA, GPU-resident Q4 path
 Artifact  qwen3.5-4b-adapt-b32.mfy (frozen Qwen-family 4B, 4-bit)
 OS        Windows 11 x64
+VRAM      ~3 GB total at the default context budget
 ```
 
-Observed local behavior on this configuration:
-
-```text
-Prefill    ~63–66 tok/s
-Decode     ~52 tok/s (Adapt) vs ~53 tok/s (Exact)
-Attention  19.7x faster per token at 32,768 context (Adapt vs Exact)
-VRAM       ~3 GB total at the default context budget
-Quality    ppl 11.296 (Adapt) vs 11.312 (Exact) — −0.1% — at 1024 positions,
-           +0.9% at 4096 positions (WikiText-2 raw test sample — /bench ppl)
-```
-
-Your numbers will differ with GPU, drivers, thermals, and configuration — which is exactly why
-the benchmark suite ships inside the app (`/bench`). Don't quote ours; measure yours.
-
----
-
-## Known limits (read this before benchmarking)
-
-This is a v0.1 proof build. It is honest about where the edges are:
-
-- **Context budget defaults to 8192 tokens.** This is a deliberate VRAM choice for 6 GB cards,
-  not an architecture ceiling — the attention-cost benchmark itself measures up to 32,768 tokens.
-  With more VRAM, raise it live with **`/ctx 16384`** (shows a VRAM estimate before applying)
-  or at startup with `--max-ctx`.
-- **Windows x64 + NVIDIA CUDA is the tested performance path.** A native CPU (AVX2) fallback is
-  built in and runs the same artifact, but it is a compatibility path, not the speed path.
-- **Greedy decoding.** The proof build runs the model deterministically, as-is — no sampling
-  tricks, no anti-repeat rewriting layered on top. What the model produces is what you see.
-- **One artifact so far in public.** The public proof ships the Qwen-family 4B artifact.
-  A Gemma-family artifact is part of the current internal validation path.
-- **Perplexity is scored on a WikiText-2 sample.** The `/bench ppl` corpus is the opening
-  ~120 KB of the **WikiText-2 (raw) test split** — the same corpus family the community uses
-  (llama.cpp's `wiki.test.raw`) — embedded so the number is reproducible offline. It is a sample
-  of the split, not the full 1.2 MB file, so treat it as an Exact-vs-Adapt comparison on standard
-  text, not as a paper-comparable full-WikiText-2 score. `/bench ppl <file>` scores any file you
-  choose.
+A mid-range consumer laptop GPU, deliberately. If it runs here, it runs on ordinary hardware.
+Your numbers will differ with GPU, drivers and thermals — don't quote ours; measure yours.
 
 ---
 
 ## MTA — Motify Transit Architecture
 
-Velocity exposes two working MTA paths today, with a third in development:
-
 | Path | Status | Role |
 |---|---|---|
 | **MTA Exact** | working | full-window reference path — baseline, parity, auditability |
-| **MTA Adapt** | working | the product path — existing models through Motify, **no retraining** |
+| **MTA Adapt** | working | the product path — active execution over frozen weights, **no retraining** |
 | **MTA Native** | future | models designed directly for Velocity's execution stack |
 
 > **Exact proves trust. Adapt ships existing models. Native breaks the ceiling.**
@@ -101,72 +88,57 @@ can run — Exact is that reference, one command away (`/mode exact`).
 
 ### MTA Adapt
 
-The current product path. It runs an existing, frozen model through Motify's adaptive execution —
-attending the active context (sink + recent + selected KV) instead of the full window — without
-retraining and without giving up the baseline. The active budget is **adaptive**: it grows with
-the context, so the attended fraction stays small while quality holds. The proof is one command,
-on your machine:
+The product path. It runs an existing, frozen model through active execution: an embedded
+selector scores the cached context cheaply, exact-rescores the best candidates, and attention
+runs over that active set — sink, recent window, and selected keys. The active budget adapts to
+the context, so quality holds while the cost stays bounded. No retraining, no calibration; the
+selector ships inside the artifact.
+
+Verify it yourself, one command each:
 
 ```text
-/bench ppl
-  → EXACT : ppl 11.312      (reference path)
-  → ADAPT : ppl 11.296      (−0.1% — same WikiText-2 sample, same machine)
+/mode exact  →  /bench ppl
+/mode adapt  →  /bench ppl
 ```
-
-On the tested configuration Adapt stays within ±1% of Exact (−0.1% at 1024 scored positions,
-+0.9% at 4096) while the per-token attention step runs **19.7x faster at 32,768 context**. This
-is presented as a **quality-preservation** result on the tested benchmark, not a universal claim.
-The point is narrow and verifiable: *Adapt runs a different execution path and the quality stays
-at baseline.* Speed is the part that changes — see the benchmark charts below.
 
 ---
 
 ## `.mfy` artifacts
 
 A `.mfy` file is a sealed Motify model artifact: model payload, tokenizer metadata, runtime
-configuration, and MTA execution metadata in one portable file. Hugging Face stores it as a
+configuration and the embedded Adapt selector in one portable file. Hugging Face stores it as a
 regular binary; Velocity is the runtime that knows how to open and execute it.
 
 ```text
 qwen3.5-4b-adapt-b32.mfy   (~2.95 GB, self-contained — nothing else to install)
 ```
 
-The Adapt selector ships *inside* the artifact — zero calibration, plug and play.
-
 ---
 
 ## The execution map
 
-Velocity shows its execution surface instead of hiding it. The right-hand panel (`/map on`)
-renders, per layer, live during generation:
-
-- which path each layer runs (attention vs state)
-- the measured **active-KV ratio** — how much of the context the attention layers actually touch
-- context usage, prefill/decode speed, and the selected backend in the header
-
-### Glossary
+Velocity shows its execution surface instead of hiding it. `/map on` renders, per layer, live
+during generation: which path each layer runs, the measured **active-KV ratio**, context usage,
+and prefill/decode speed.
 
 | Term | Meaning in the map |
 |---|---|
-| **GQA** | Grouped Query Attention — the attention path. Bars sized by measured active-KV %. |
-| **KV** | Key/Value cache — attention memory; grows with context in the Exact path. |
-| **SSM** | State Space Model — layers that keep a compact working state instead of a growing window. |
-| **O(1) state** | a bounded working state whose size does not grow with conversation length. |
-| **FFN** | Feed-Forward Network — the dense compute block in each layer. |
-
-The reason this matters: the goal is not to push more tokens into the model, it is to **control
-execution at the runtime layer** — and to let you watch it happen.
+| **GQA** | Grouped Query Attention — the attention path; bars sized by measured active-KV % |
+| **KV** | Key/Value cache — attention memory; grows with context on the Exact path |
+| **SSM** | State Space Model — layers with a compact working state instead of a growing window |
+| **O(1) state** | a bounded working state that does not grow with conversation length |
+| **FFN** | Feed-Forward Network — the dense compute block in each layer |
 
 ---
 
 ## Benchmarks
 
-We believe in runnable proof, not screenshots. The suite ships inside the app — type `/bench`
-and it measures **your** machine, renders the charts, and writes the raw numbers to
-`summary.txt`. Nothing is baked in; the charts show whatever your hardware produced, and Exact
-is always plotted next to Adapt.
+We believe in runnable proof, not screenshots. `/bench full` measures **your** machine, renders
+shareable PNG charts (each stamped with your device name) and writes the raw numbers to
+`summary.txt`. Nothing is baked in, Exact is always plotted next to Adapt, and every step prints
+its wall time.
 
-Reference results from the tested RTX 3060 Laptop configuration:
+Reference results from the tested configuration:
 
 ![Full Benchmark Overview](benchmarks/00_full_benchmark.png)
 
@@ -178,57 +150,42 @@ Reference results from the tested RTX 3060 Laptop configuration:
 | [Decode throughput](benchmarks/04_decode_throughput.png) | end-to-end tok/s, Exact and Adapt |
 | [Perplexity](benchmarks/05_perplexity.png) | quality, Exact vs Adapt, same corpus, same machine |
 
-Raw numbers: [benchmarks/summary.txt](benchmarks/summary.txt)
+The perplexity corpus is the opening ~120 KB of the **WikiText-2 (raw) test split** (the same
+family as llama.cpp's `wiki.test.raw`), embedded so the number is reproducible offline. It is a
+sample of the split — treat it as an Exact-vs-Adapt comparison on standard text, not a
+paper-comparable full-WikiText-2 score. `/bench ppl <file>` scores any text you choose.
 
 ---
 
 ## Quick start
 
 **1. Install** — run [`VeloSetup.exe`](https://github.com/Veloresearch/velocity-mta-proof/releases/latest).
-Per-user install, no administrator prompt. The model downloads during setup (or on first launch).
+Per-user, no administrator prompt. The model downloads during setup (or on first launch).
 
-**2. Launch** — start **Velocity** from the Start menu, or run it from a terminal
-(Windows Terminal recommended):
+**2. Launch** — start **Velocity** from the Start menu (Windows Terminal recommended).
 
-```powershell
-velocity.exe
-```
-
-Manual model download, if you prefer:
-
-```bash
-hf download veloresearch/qwen3.5-4b-adapt-b32 qwen3.5-4b-adapt-b32.mfy --local-dir ./models
-```
-
-**3. Verify the proof yourself:**
+**3. Verify the proof:**
 
 ```text
 /mode exact      run the reference path
-/mode adapt      run the adaptive path
+/mode adapt      run active execution
 /bench           measure both on your machine (charts + summary.txt)
-/map on          watch the per-layer execution map while it generates
-/stats           last-turn speed and context numbers
+/map on          watch the per-layer execution map live
 ```
 
 ## Commands
 
-Type `/` in the prompt to open the command palette.
-
 ```text
 /mode adapt | exact          switch MTA execution path
 /backend auto | cuda | cpu   select the compute backend
-/ctx | /ctx <tokens>         context budget — shows a VRAM estimate per size, applies live
+/ctx | /ctx <tokens>         context budget — VRAM estimate per size, applies live
 /think on | off              let the model reason before answering
 /map on | off                per-layer MTA execution map
 /bench                       benchmark menu: quick | ppl | speed | full (PNG charts)
 /bench ppl <file>            score perplexity on your own text file
 /stats                       last-turn speed and context stats
-/new                         start a fresh conversation
-/copy                        copy the last code block
-/save <file>                 save the last code block to a file
-/settings                    current runtime settings
-/help                        list commands
-/exit                        quit
+/new  /copy  /save <file>    conversation & code-block helpers
+/settings  /help  /exit
 ```
 
 `Ctrl+C` stops the current generation without closing the app.
@@ -248,31 +205,37 @@ velocity.exe --prompt "..."          one-shot answer, then exit
 
 ---
 
+## Known limits
+
+- **Context budget defaults to 8192 tokens** — a deliberate VRAM choice for 6 GB cards, not an
+  architecture ceiling. Raise it live with `/ctx 16384` (shows the VRAM estimate first).
+- **Windows x64 + NVIDIA CUDA** (GTX 16xx / RTX 20xx or newer) is the tested performance path.
+  A native CPU (AVX2) fallback runs the same artifact, slower.
+- **Greedy decoding, model as-is** — no sampling tricks, no anti-repeat rewriting on top.
+- **One public artifact so far** (Qwen-family 4B). A Gemma-family artifact is in internal
+  validation. MTA Native is the roadmap headline.
+
 ## Proof status
 
 ```text
 MTA Exact        working
-MTA Adapt        working
+MTA Adapt        working — bit-identical to Exact below ~2k ctx, active execution above
 .mfy artifact    working
-Qwen 4B artifact working
 CUDA backend     working — preferred path
 CPU x86 backend  working — compatibility fallback
-HF auto-download working — setup-time and first-launch, SHA-256 verified
+HF auto-download working — setup-time and first-launch, SHA-256 verified, resume
 Local chat       working
 Benchmark suite  working — /bench, reproducible locally
 Execution map    working — /map
+GPU-vs-CPU check working — /verify (exact, adapt and FFN paths)
 ```
-
-In internal validation: Gemma-family artifact. Next: MTA Native.
-
----
 
 ## Why this matters
 
-Velocity does not compete with Qwen, Gemma, or Llama. It builds the execution layer underneath
+Velocity does not compete with Qwen, Gemma or Llama. It builds the execution layer underneath
 them. If existing model families can be compiled into `.mfy` artifacts, verified through MTA
-Exact, and executed through MTA Adapt without retraining — then the value is not in any one
-model. It is in the artifact standard and the runtime.
+Exact, and executed through MTA Adapt without retraining — the value is not in any one model.
+It is in the artifact standard and the runtime.
 
 And the proof runs on a 6 GB consumer laptop GPU.
 
@@ -282,8 +245,6 @@ And the proof runs on a 6 GB consumer laptop GPU.
 - not a fine-tuning product
 - not a cloud demo
 - not a claim without a runnable local proof
-
----
 
 ## Privacy
 
