@@ -22,7 +22,7 @@ No Python. No PyTorch. No server. No cloud. One `.exe`.
 | | |
 |---|---|
 | **Windows proof build** | [Download VeloSetup.exe](https://github.com/Veloresearch/velocity-mta-proof/releases/latest) |
-| **Model artifact** | [veloresearch/qwen3.5-4b-adapt-b32 on Hugging Face](https://huggingface.co/veloresearch/qwen3.5-4b-adapt-b32) |
+| **Model artifact** | [velocity-research/qwen3.5-4b-adapt-b32 on Hugging Face](https://huggingface.co/velocity-research/qwen3.5-4b-adapt-b32) |
 
 The installer downloads the `.mfy` artifact (~2.95 GB) during setup, SHA-256 verified. If
 skipped, `velocity.exe` downloads and verifies it on first launch, with resume support for
